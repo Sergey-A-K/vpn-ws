@@ -1,4 +1,4 @@
-#include "vpn-ws.h"
+﻿#include "vpn-ws.h"
 
 static struct option vpn_ws_options[] = {
 	{"tuntap", required_argument, NULL, 1 },
@@ -16,17 +16,15 @@ int main(int argc, char *argv[]) {
 	int option_index = 0;
 	int event_queue = -1;
 
-	vpn_ws_fd server_fd;
-	vpn_ws_fd tuntap_fd;
+	int server_fd;
+	int tuntap_fd;
 
 	setbuf(stdout, NULL);
 
-#ifndef __WIN32__
 	sigset_t sset;
 	sigemptyset(&sset);
 	sigaddset(&sset, SIGPIPE);
 	sigprocmask(SIG_BLOCK, &sset, NULL);
-#endif
 
 	for(;;) {
 		int c = getopt_long(argc, argv, "", vpn_ws_options, &option_index);
@@ -61,7 +59,7 @@ int main(int argc, char *argv[]) {
 				exit(0);
 			default:
 				vpn_ws_log("error parsing arguments\n");
-				vpn_ws_exit(1);
+				vpn_ws_exit(EXIT_FAILURE);
 		}
 	}
 
@@ -71,48 +69,45 @@ int main(int argc, char *argv[]) {
 
 	if (!vpn_ws_conf.server_addr) {
 		vpn_ws_log("you need to specify a socket address\n");
-                vpn_ws_exit(1);
+                vpn_ws_exit(EXIT_FAILURE);
 	}
 
 	server_fd = vpn_ws_bind(vpn_ws_conf.server_addr);
 	if (server_fd < 0) {
-		vpn_ws_exit(1);
+		vpn_ws_exit(EXIT_FAILURE);
 	}
 
 	if (vpn_ws_nb(server_fd)) {
-		vpn_ws_exit(1);
+		vpn_ws_exit(EXIT_FAILURE);
 	}
 
 	event_queue = vpn_ws_event_queue(256);
 	if (event_queue < 0) {
-		vpn_ws_exit(1);
+		vpn_ws_exit(EXIT_FAILURE);
 	}
 
 	if (vpn_ws_conf.tuntap_name) {
 		tuntap_fd = vpn_ws_tuntap(vpn_ws_conf.tuntap_name);
 		if (tuntap_fd < 0) {
-			vpn_ws_exit(1);
+			vpn_ws_exit(EXIT_FAILURE);
 		}
 
 		vpn_ws_peer_create(event_queue, tuntap_fd, vpn_ws_conf.tuntap_mac);
 		if (!vpn_ws_conf.peers) {
-			vpn_ws_exit(1);
+			vpn_ws_exit(EXIT_FAILURE);
 		}
 		if (vpn_ws_conf.bridge) {
-#ifndef __WIN32__
 
 			vpn_ws_conf.peers[tuntap_fd]->bridge = 1;
-#endif
 		}
 	}
 
 	if (vpn_ws_conf.exec) {
                 if (vpn_ws_exec(vpn_ws_conf.exec)) {
-                        vpn_ws_exit(1);
+                        vpn_ws_exit(EXIT_FAILURE);
                 }
         }
 
-#ifndef __WIN32__
 	// drop privileges
 	if (vpn_ws_conf.gid) {
 		gid_t gid = 0;
@@ -123,7 +118,7 @@ int main(int argc, char *argv[]) {
 			}
 			else {
 				vpn_ws_log("unable to find group %s\n", vpn_ws_conf.gid);
-				vpn_ws_exit(1);
+				vpn_ws_exit(EXIT_FAILURE);
 			}
 		}
 		else {
@@ -131,11 +126,11 @@ int main(int argc, char *argv[]) {
 		}
 		if (!gid) {
 			vpn_ws_log("unable to drop to gid\n");
-			vpn_ws_exit(1);
+			vpn_ws_exit(EXIT_FAILURE);
 		}
 		if (setgid(gid)) {
 			vpn_ws_error("setgid()");
-			vpn_ws_exit(1);
+			vpn_ws_exit(EXIT_FAILURE);
 		}
 	}
 
@@ -148,7 +143,7 @@ int main(int argc, char *argv[]) {
                         }
                         else {
                                 vpn_ws_log("unable to find user %s\n", vpn_ws_conf.uid);
-                                vpn_ws_exit(1);
+                                vpn_ws_exit(EXIT_FAILURE);
                         }
                 }
                 else {
@@ -156,23 +151,22 @@ int main(int argc, char *argv[]) {
                 }
                 if (!uid) {
                         vpn_ws_log("unable to drop to uid\n");
-                        vpn_ws_exit(1);
+                        vpn_ws_exit(EXIT_FAILURE);
                 }
                 if (setuid(uid)) {
                         vpn_ws_error("setuid()");
-                        vpn_ws_exit(1);
+                        vpn_ws_exit(EXIT_FAILURE);
                 }
         }
-#endif
 
 	if (vpn_ws_event_add_read(event_queue, server_fd)) {
-		vpn_ws_exit(1);
+		vpn_ws_exit(EXIT_FAILURE);
 	}
 
 
 	void *events = vpn_ws_event_events(64);
 	if (!events) {
-		vpn_ws_exit(1);
+		vpn_ws_exit(EXIT_FAILURE);
 	}
 
 	for(;;) {
@@ -182,7 +176,6 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 
-#ifndef __WIN32__
 		int i;
 		for(i=0;i<ret;i++) {
 			int fd = vpn_ws_event_fd(events, i);
@@ -195,8 +188,6 @@ int main(int argc, char *argv[]) {
 			// on peer modification, exit the cycle
 			if (vpn_ws_manage_fd(event_queue, fd)) break;
 		}
-#else
-#endif
 	}
 
 	return 0;

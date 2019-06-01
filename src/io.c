@@ -1,7 +1,7 @@
 #include "vpn-ws.h"
 
 int vpn_ws_continue_write(vpn_ws_peer *peer) {
-	vpn_ws_send(peer->fd, peer->write_buf, peer->write_pos, wlen);
+    ssize_t wlen = write(peer->fd, peer->write_buf, peer->write_pos);
         if (wlen < 0) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS) {
                         return 0;
@@ -49,14 +49,14 @@ int vpn_ws_write_websocket(vpn_ws_peer *peer, uint8_t *buf, uint64_t amount) {
 		header_size = 4;
 		header[1] = 126;
 		header[2] = (uint8_t) ((amount >> 8) & 0xff);
-		header[3] = (uint8_t) (amount & 0xff);	
+		header[3] = (uint8_t) (amount & 0xff);
 	}
 	else {
 		header_size = 10;
 		header[1] = 127;
 		header[2] = (uint8_t) ((amount >> 56) & 0xff);
 		header[3] = (uint8_t) ((amount >> 48) & 0xff);
-		header[4] = (uint8_t) ((amount >> 40) & 0xff); 
+		header[4] = (uint8_t) ((amount >> 40) & 0xff);
 		header[5] = (uint8_t) ((amount >> 32) & 0xff);
 		header[6] = (uint8_t) ((amount >> 24) & 0xff);
 		header[7] = (uint8_t) ((amount >> 16) & 0xff);
@@ -94,7 +94,7 @@ int vpn_ws_read(vpn_ws_peer *peer, uint64_t amount) {
 		peer->buf = tmp;
 	}
 
-	vpn_ws_recv(peer->fd, peer->buf + peer->pos, amount, rlen);
+	ssize_t rlen = read(peer->fd, peer->buf + peer->pos, amount);
 	if (rlen < 0) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS) {
 			return 0;
@@ -109,21 +109,16 @@ int vpn_ws_read(vpn_ws_peer *peer, uint64_t amount) {
 	return 1;
 }
 
-int vpn_ws_manage_fd(int queue, vpn_ws_fd fd) {
+int vpn_ws_manage_fd(int queue, int fd) {
 	// when 1 invoke the event wait loop
 	int dirty = 0;
 
 	// check if the fd can be in the peers list
-#ifndef __WIN32__
 	if (fd > vpn_ws_conf.peers_n) {
 		return -1;
 	}
 	// first of all find a valid peer
 	vpn_ws_peer *peer = vpn_ws_conf.peers[fd];
-#else
-	// TODO find a solution for windows
-	vpn_ws_peer *peer = NULL;
-#endif
 	if (!peer) {
 		vpn_ws_log("[BUG] fd %d not found\n", fd);
 		close(fd);
@@ -219,10 +214,10 @@ again:
 	if (peer->has_mask) {
 		uint16_t i;
 		for (i=0;i<ws_len;i++) {
-			 ws[i] = ws[i] ^ peer->mask[i % 4];	
+			 ws[i] = ws[i] ^ peer->mask[i % 4];
 		}
 		// move the header and clear the mask bit
-		memmove(peer->buf+4, peer->buf, ws_header - 4);	
+		memmove(peer->buf+4, peer->buf, ws_header - 4);
 		peer->buf[5] &= 0x7f;
 
 		data+=4;
@@ -304,7 +299,7 @@ parsed:
 						vpn_ws_peer_destroy(b_peer);
 					}
 				}
-			}	
+			}
 		}
 		goto decapitate;
 	}
@@ -324,7 +319,7 @@ parsed:
                         	// myself ?
                         	if (b_peer->fd == peer->fd) continue;
                         	// already accounted ?
-                        	if (!b_peer->mac_collected) continue;	
+                        	if (!b_peer->mac_collected) continue;
 				// is a bridge ?
 				if (!b_peer->bridge) continue;
 				int wret = -1;

@@ -1,0 +1,18 @@
+[Unit]
+Description=VWS-CLIENT
+After=network.target
+
+[Service]
+Type=simple
+
+# User=linux
+# Group=users
+
+WorkingDirectory=/vws
+ExecStart=/vws/vpn-ws-client tun0 wss://hostname/vws --mtu 1472 --exec "ifconfig tun1 10.10.0.2 netmask 255.255.255.0 mtu 1458"
+
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

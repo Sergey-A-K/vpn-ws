@@ -19,7 +19,7 @@ ssize_t vpn_ws_uwsgi_parse(vpn_ws_peer *peer, uint8_t *modifier1, uint8_t *modif
 
 	while(uwsgi_pktsize) {
 		if (uwsgi_pktsize < 2) return -1;
-		uint16_t keylen = vpn_ws_le16(pkt); 	
+		uint16_t keylen = vpn_ws_le16(pkt);
 		uwsgi_pktsize -= 2;
 		pkt += 2;
 		if (keylen == 0) return -1;
@@ -29,7 +29,7 @@ ssize_t vpn_ws_uwsgi_parse(vpn_ws_peer *peer, uint8_t *modifier1, uint8_t *modif
 		pkt += keylen;
 
 		if (uwsgi_pktsize < 2) return -1;
-		uint16_t vallen = vpn_ws_le16(pkt);	
+		uint16_t vallen = vpn_ws_le16(pkt);
 		uwsgi_pktsize -= 2;
 		pkt += 2;
 		if (vallen > uwsgi_pktsize) return -1;
@@ -81,7 +81,7 @@ int64_t vpn_ws_handshake(int queue, vpn_ws_peer *peer) {
 	char *remote_addr = vpn_ws_peer_get_var(peer, "REMOTE_ADDR", 11, &peer->remote_addr_len);
 	if (remote_addr) {
 		peer->remote_addr = vpn_ws_strndup(remote_addr, peer->remote_addr_len);
-	} 
+	}
 
 	char *remote_user = vpn_ws_peer_get_var(peer, "REMOTE_USER", 11, &peer->remote_user_len);
         if (remote_user) {
@@ -143,7 +143,7 @@ int64_t vpn_ws_handshake(int queue, vpn_ws_peer *peer) {
 	static uint8_t *http_response = NULL;
 	if (!http_response) {
 		http_response = vpn_ws_malloc(1024);
-		memcpy(http_response, HTTP_RESPONSE, sizeof(HTTP_RESPONSE)-1);	
+		memcpy(http_response, HTTP_RESPONSE, sizeof(HTTP_RESPONSE)-1);
 	}
 
 	uint8_t sha1[20];
@@ -156,7 +156,7 @@ int64_t vpn_ws_handshake(int queue, vpn_ws_peer *peer) {
 	// encode to base64
 	uint8_t ws_accept[32];
 	uint16_t ws_accept_len = vpn_ws_base64_encode(sha1, 20, ws_accept);
-	
+
 	// append the result to the http response
 
 	memcpy(http_response + sizeof(HTTP_RESPONSE)-1, ws_accept, ws_accept_len);
@@ -192,13 +192,9 @@ static int json_append(char *json, uint64_t *pos, uint64_t *len, char *buf, uint
 }
 
 static int json_append_num(char *json, uint64_t *pos, uint64_t *len, int64_t n) {
-	char buf[30];	
-#ifndef __WIN32__
+	char buf[30];
+
 	int ret = snprintf(buf, 30, "%lld", (unsigned long long) n);
-#else
-	// TODO fix it
-	int ret = snprintf(buf, 30, "%d", (int) n);
-#endif
 	if (ret <= 0 || ret > 30) return -1;
 	return json_append(json, pos, len, buf, ret);
 }
@@ -307,7 +303,7 @@ int64_t vpn_ws_ctrl_json(int queue, vpn_ws_peer *peer) {
 				json[9] = '4';
 				json[10] = '0';
 				json[11] = '4';
-				if (json_append(json, &json_pos, &json_len, "{\"status\":\"not found\"}", 22)) goto end;	
+				if (json_append(json, &json_pos, &json_len, "{\"status\":\"not found\"}", 22)) goto end;
 				goto commit;
 			}
 			vpn_ws_peer *b_peer = vpn_ws_conf.peers[fd];
@@ -315,7 +311,7 @@ int64_t vpn_ws_ctrl_json(int queue, vpn_ws_peer *peer) {
 				json[9] = '4';
 				json[10] = '0';
 				json[11] = '4';
-				if (json_append(json, &json_pos, &json_len, "{\"status\":\"not found\"}", 22)) goto end;	
+				if (json_append(json, &json_pos, &json_len, "{\"status\":\"not found\"}", 22)) goto end;
 				goto commit;
 			}
 			vpn_ws_peer_destroy(b_peer);
@@ -357,7 +353,7 @@ int64_t vpn_ws_ctrl_json(int queue, vpn_ws_peer *peer) {
 		if (json_append(json, &json_pos, &json_len, "\",\"bridge\":", 11)) goto end;
 		if (json_append_num(json, &json_pos, &json_len, b_peer->bridge)) goto end;
 
-		if (json_append(json, &json_pos, &json_len, ",\"macs\":[", 9)) goto end; 
+		if (json_append(json, &json_pos, &json_len, ",\"macs\":[", 9)) goto end;
 
 		vpn_ws_mac *macs = b_peer->macs;
 		while(macs) {

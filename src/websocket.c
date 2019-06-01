@@ -1,10 +1,10 @@
-#include "vpn-ws.h"
+﻿#include "vpn-ws.h"
 
 int64_t vpn_ws_websocket_parse(vpn_ws_peer *peer, uint16_t *ws_header) {
 	if (peer->pos < 2) return 0;
 
 	uint8_t byte1 = peer->buf[0];
-        uint8_t byte2 = peer->buf[1];	
+        uint8_t byte2 = peer->buf[1];
 
 	uint8_t opcode = byte1 & 0xf;
 	peer->has_mask = byte2 >> 7;
